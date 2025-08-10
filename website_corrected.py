@@ -539,7 +539,7 @@ def display_financial_summary(inputs, metrics, currency_symbol):
     project_lifespan = inputs['project_lifespan']
     payback_color = '#27ae60' if payback_period and payback_period <= project_lifespan else '#e74c3c'
     payback_text = fmt_yrs(payback_period) if payback_period else f"&gt; {project_lifespan} yrs"
-    
+
     # Profitability Index
     pi_color = '#e74c3c' # Default to Red
     if metrics['profitability_index'] and metrics['profitability_index'] > 1:
@@ -598,9 +598,9 @@ def display_financial_summary(inputs, metrics, currency_symbol):
                 <h3>{fmt_curr(metrics['break_even_revenue'], currency_symbol)}</h3>
                 <p>Year 1 Revenue: {fmt_curr(inputs['projected_revenue'], currency_symbol)}</p>
             </div>
-            """, unsafe_allow_html=True)
+            """, unsafe_allow_html=Trie)
 
-    # --- Viability recommendation logic (no change needed here) ---
+    # --- Viability recommendation logic ---
     st.markdown("---")
     if (metrics["npv"] > 0 and
         (metrics["irr"] is not None and metrics["irr"] > inputs["discount_rate"]) and
@@ -612,10 +612,14 @@ def display_financial_summary(inputs, metrics, currency_symbol):
             reasons.append("Negative or zero NPV")
         if not (metrics["irr"] is not None and metrics["irr"] > inputs["discount_rate"]):
             reasons.append(f"IRR below target rate ({fmt_pct(inputs['discount_rate'])})")
-        if not metrics["payback_period"] or metrics["pay_period"] > inputs["project_lifespan"]:
+        
+        # --- START OF THE FIX ---
+        # The line below now correctly uses "payback_period" instead of "pay_period"
+        if not metrics["payback_period"] or metrics["payback_period"] > inputs["project_lifespan"]:
             reasons.append("Payback period exceeds project lifespan or is not achieved")
+        # --- END OF THE FIX ---
+            
         st.warning(f"⚠ **Review Recommended**: {'; '.join(reasons)}. Consider adjusting your financial parameters.")
-
 def display_cash_flow_table(years, revenues, cash_flows, tax_rates, after_tax_flows, discounted_flows, currency_symbol):
     """Displays the detailed cash flow table"""
     st.subheader("📋 Annual Cash Flow Projections")
