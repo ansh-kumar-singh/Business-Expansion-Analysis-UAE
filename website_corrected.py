@@ -520,105 +520,74 @@ def monte_carlo_simulation(inputs, n_simulations=1000):
         npvs.append(metrics["npv"])
     return np.percentile(npvs, [5, 50, 95])
 def display_financial_summary(inputs, metrics, currency_symbol):
-    """Displays the financial summary section with color-coded viability indicators."""
+    """Displays the financial summary section"""
     st.subheader("📊 Financial Summary")
-
+    
     col1, col2 = st.columns(2)
-
-    # --- Pre-calculate colors and text for clarity ---
-    # NPV
-    npv_color = '#27ae60' if metrics['npv'] > 0 else '#e74c3c'
-
-    # IRR
-    irr_color = '#e74c3c' # Default to Red
-    if metrics['irr'] is not None and metrics['irr'] > inputs['discount_rate']:
-        irr_color = '#27ae60' # Green if viable
-
-    # Payback Period
-    payback_period = metrics['payback_period']
-    project_lifespan = inputs['project_lifespan']
-    payback_color = '#27ae60' if payback_period and payback_period <= project_lifespan else '#e74c3c'
-    payback_text = fmt_yrs(payback_period) if payback_period else f"&gt; {project_lifespan} yrs"
-
-    # Profitability Index
-    pi_color = '#e74c3c' # Default to Red
-    if metrics['profitability_index'] and metrics['profitability_index'] > 1:
-        pi_color = '#27ae60' # Green if viable
-        
-    # Discounted ROI
-    roi_color = '#27ae60' if metrics['discounted_roi'] > 0 else '#e74c3c'
-
-    # --- Column 1 ---
+    
     with col1:
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Net Present Value">
                 <h4>Net Present Value (NPV)</h4>
-                <h3 style="color: {npv_color}">{fmt_curr(metrics['npv'], currency_symbol)}</h3>
+                <h3 style="color: {'#e74c3c' if metrics['npv'] < 0 else '#27ae60'}">{fmt_curr(metrics['npv'], currency_symbol)}</h3>
                 <p>Discount Rate: {fmt_pct(inputs['discount_rate'])}</p>
             </div>
             """, unsafe_allow_html=True)
-
+        
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Internal Rate of Return">
                 <h4>Internal Rate of Return (IRR)</h4>
-                <h3 style="color: {irr_color}">{fmt_pct(metrics['irr']) if metrics['irr'] is not None else (metrics['irr_error'])}</h3>
-                <p>Target Rate: {fmt_pct(inputs['discount_rate'])}</p>
+                <h3>{fmt_pct(metrics['irr']) if metrics['irr'] is not None else (metrics['irr_error'])}</h3>
+                <p>Target: {fmt_pct(inputs['discount_rate'])}</p>
             </div>
             """, unsafe_allow_html=True)
-
+        
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Payback Period">
                 <h4>Payback Period</h4>
-                <h3 style="color: {payback_color}">{payback_text}</h3>
-                <p>Project Lifespan: {project_lifespan} years</p>
+                <h3>{fmt_yrs(metrics['payback_period'])}</h3>
+                <p>Project Lifespan: {inputs['project_lifespan']} years</p>
             </div>
             """, unsafe_allow_html=True)
-
-    # --- Column 2 ---
+    
     with col2:
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Profitability Index">
                 <h4>Profitability Index</h4>
-                <h3 style="color: {pi_color}">{metrics['profitability_index'] and f"{metrics['profitability_index']:.2f}" or 'N/A'}</h3>
-                <p>Target: &gt; 1.0</p>
+                <h3>{metrics['profitability_index'] and f"{metrics['profitability_index']:.2f}" or 'N/A'}</h3>
+                <p>Present Value: {fmt_curr(metrics['pv'], currency_symbol)}</p>
             </div>
             """, unsafe_allow_html=True)
-
+        
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Discounted ROI">
                 <h4>Discounted ROI</h4>
-                <h3 style="color: {roi_color}">{fmt_pct(metrics['discounted_roi'])}</h3>
+                <h3>{fmt_pct(metrics['discounted_roi'])}</h3>
                 <p>Initial Investment: {fmt_curr(inputs['initial_investment'], currency_symbol)}</p>
             </div>
             """, unsafe_allow_html=True)
-
+        
         st.markdown(f"""
             <div class="metric-card high-contrast" role="region" aria-label="Break-even Revenue">
                 <h4>Break-even Revenue</h4>
                 <h3>{fmt_curr(metrics['break_even_revenue'], currency_symbol)}</h3>
                 <p>Year 1 Revenue: {fmt_curr(inputs['projected_revenue'], currency_symbol)}</p>
             </div>
-            """, unsafe_allow_html=Trie)
-
-    # --- Viability recommendation logic ---
+            """, unsafe_allow_html=True)
+    
     st.markdown("---")
-    if (metrics["npv"] > 0 and
-        (metrics["irr"] is not None and metrics["irr"] > inputs["discount_rate"]) and
+    if (metrics["npv"] > 0 and 
+        (metrics["irr"] is not None and metrics["irr"] > inputs["discount_rate"]) and 
         metrics["payback_period"] and metrics["payback_period"] <= inputs["project_lifespan"]):
         st.success("✅ **Financially Viable**: This expansion appears profitable based on current projections.")
     else:
         reasons = []
         if metrics["npv"] <= 0:
             reasons.append("Negative or zero NPV")
-        if not (metrics["irr"] is not None and metrics["irr"] > inputs["discount_rate"]):
+        if metrics["irr"] is not None and metrics["irr"] < inputs["discount_rate"]:
             reasons.append(f"IRR below target rate ({fmt_pct(inputs['discount_rate'])})")
-        
-        # --- START OF THE FIX ---
-        # The line below now correctly uses "payback_period" instead of "pay_period"
         if not metrics["payback_period"] or metrics["payback_period"] > inputs["project_lifespan"]:
             reasons.append("Payback period exceeds project lifespan or is not achieved")
-        # --- END OF THE FIX ---
-            
         st.warning(f"⚠ **Review Recommended**: {'; '.join(reasons)}. Consider adjusting your financial parameters.")
 def display_cash_flow_table(years, revenues, cash_flows, tax_rates, after_tax_flows, discounted_flows, currency_symbol):
     """Displays the detailed cash flow table"""
