@@ -5,3 +5,4 @@ numpy-financial==1.0.0
 matplotlib==3.8.4
 plotly==5.22.0
 fpdf==1.7.2
+forex-python==1.8
