@@ -189,41 +189,34 @@ def get_currency_symbol_pdf(currency):
     return "AED" if currency == "AED" else "$"
 
 def currency_selector():
-    """Displays the currency selector and handles currency conversion."""
+    """Displays the currency selector and forces app reload when currency changes."""
     with st.sidebar:
         st.header("Currency Selection")
         currency_options = ["AED", "USD"]
-        
-        # This callback function runs ONLY when the user changes the selectbox.
-        def on_currency_change():
-            # Get the newly selected currency from the widget's state
-            new_currency = st.session_state.currency_widget
-            
-            # Find the old currency to perform the conversion
-            old_currency = st.session_state.currency
-            
-            # Convert all monetary values
-            for key in MONETARY_KEYS:
-                st.session_state[key] = convert_currency(st.session_state[key], old_currency, new_currency)
 
-            # Finally, update the master currency state
-            st.session_state.currency = new_currency
-            
-        # Determine the index of the current currency to ensure the box displays it correctly.
+        # Initialize currency if not already set
+        if "currency" not in st.session_state:
+            st.session_state.currency = "AED"
+
+        # Get current index for dropdown
         try:
             current_index = currency_options.index(st.session_state.currency)
         except ValueError:
             current_index = 0
 
-        # Create the selectbox. 'on_change' handles the logic, and 'index' ensures the display is correct.
-        st.selectbox(
+        # Selectbox for currency
+        new_currency = st.selectbox(
             "Select Currency",
             currency_options,
             index=current_index,
-            key='currency_widget',  # Give the widget a unique, stable key
-            on_change=on_currency_change, # Run the callback when the user makes a change
+            key="currency_widget",
             help="Select the currency for all financial calculations"
         )
+
+        # If currency changed, update state and rerun app
+        if new_currency != st.session_state.currency:
+            st.session_state.currency = new_currency
+            st.rerun()
 
 def get_tax_thresholds(currency):
     """Get tax thresholds in selected currency"""
